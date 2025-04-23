@@ -1,4 +1,3 @@
-// components/dashboard/SummaryDialog.tsx
 import React from 'react';
 import {
   Dialog,
@@ -15,7 +14,7 @@ import { Loader2 } from 'lucide-react';
 interface SummaryDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  noteTitle: string | undefined; // Title of the note being summarized
+  noteTitle: string | undefined;
   summary: string | null;
   isLoading: boolean;
 }

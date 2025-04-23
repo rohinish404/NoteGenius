@@ -1,4 +1,3 @@
-// lib/openai.ts
 import OpenAI from "openai";
 
 if (!process.env.GROQ_API_KEY) {

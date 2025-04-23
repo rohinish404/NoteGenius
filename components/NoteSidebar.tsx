@@ -1,23 +1,22 @@
-// components/dashboard/NoteSidebar.tsx
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { PlusCircle, FileText, Trash2, Loader2, LogOut } from 'lucide-react';
-import type { NoteData } from '@/lib/notes'; // Assuming NoteData is exported
+import type { NoteData } from '@/lib/notes';
 
 interface NoteSidebarProps {
-  notes: (NoteData & { lastModified: number })[]; // Add lastModified for sorting
+  notes: (NoteData & { lastModified: number })[];
   selectedNoteId: string | null;
   isLoadingNotes: boolean;
   isErrorNotes: boolean;
   errorNotes: Error | null;
   isCreatingNote: boolean;
   isDeletingNote: boolean;
-  deletingNoteId: string | null; // Pass the specific ID being deleted
+  deletingNoteId: string | null;
   isLoggingOut: boolean;
-  anyMutationPending: boolean; // General flag to disable interactions
-  isNavigating: boolean; // Flag for navigation state
+  anyMutationPending: boolean;
+  isNavigating: boolean;
   onSelectNote: (noteId: string) => void;
   onDeleteNote: (noteId: string) => void;
   onCreateNote: () => void;
@@ -87,7 +86,6 @@ export function NoteSidebar({
                 size="icon"
                 className="absolute right-1 h-7 w-7 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-muted-foreground hover:text-destructive disabled:opacity-0"
                 onClick={(e) => { e.stopPropagation(); onDeleteNote(note.id); }}
-                // Disable delete only if THIS note is being deleted, or any other mutation/loading
                 disabled={anyMutationPending || isLoadingNotes || (isDeletingNote && deletingNoteId === note.id)}
                 title={`Delete "${note.title || "Untitled"}"`}
               >

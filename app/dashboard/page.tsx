@@ -1,4 +1,3 @@
-// app/dashboard/page.tsx
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef, Suspense, useMemo } from "react";
@@ -10,7 +9,6 @@ import { logOutAction } from "@/actions/users";
 import { summarizeNoteAction } from "@/actions/notes";
 import { fetchNotes, createNote, updateNote, deleteNote, NoteData } from "@/lib/notes";
 
-// Import the new components
 import { NoteSidebar } from "@/components/NoteSidebar";
 import { NoteEditor } from "@/components/NoteEditor";
 import { SummaryDialog } from "@/components/SummaryDialog";
@@ -19,7 +17,6 @@ import { Loader2 } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
-// --- Fallback Component ---
 function DashboardFallback() {
   return (
     <div className="flex h-screen w-full items-center justify-center">
@@ -28,7 +25,6 @@ function DashboardFallback() {
   );
 }
 
-// --- Main Page Component ---
 export default function DashboardPage() {
   return (
     <Suspense fallback={<DashboardFallback />}>
@@ -37,7 +33,6 @@ export default function DashboardPage() {
   );
 }
 
-// --- AppNotesPage Container Component ---
 function AppNotesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -45,7 +40,6 @@ function AppNotesPage() {
 
   const noteIdFromUrl = searchParams.get("noteId");
 
-  // == State Management ==
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(noteIdFromUrl);
   const [currentContent, setCurrentContent] = useState<string>("");
   const [currentTitle, setCurrentTitle] = useState<string>("");
@@ -54,7 +48,6 @@ function AppNotesPage() {
   const [showSummaryDialog, setShowSummaryDialog] = useState(false);
   const isNavigatingRef = useRef(false);
 
-  // == React Query Hooks ==
   const {
     data: notesData,
     isLoading: isLoadingNotes,
@@ -80,7 +73,6 @@ function AppNotesPage() {
      return notes.find((note) => note.id === selectedNoteId) || null;
   }, [notes, selectedNoteId]);
 
-  // Effects for URL sync and editor content update (remain the same as before)
   useEffect(() => {
     if (isLoadingNotes || isNavigatingRef.current) return;
 
@@ -120,8 +112,7 @@ function AppNotesPage() {
   }, [selectedNote, isLoadingNotes, notes.length]);
 
 
-  // Mutations (remain the same definitions as before)
-  const createNoteMutation = useMutation({ /* ... definition ... */
+  const createNoteMutation = useMutation({ 
     mutationFn: () => createNote({ title: 'New Note', content: '' }),
     onSuccess: (newNoteData) => {
       toast.success("New note created!");
@@ -135,7 +126,7 @@ function AppNotesPage() {
     onError: (error) => { toast.error("Error creating note", { description: error.message }); },
   });
 
-  const updateNoteMutation = useMutation({ /* ... definition ... */
+  const updateNoteMutation = useMutation({
      mutationFn: (variables: { id: string; title: string; content: string }) => updateNote(variables),
      onSuccess: (updatedNoteData) => {
         toast.success("Note saved!");
@@ -151,7 +142,7 @@ function AppNotesPage() {
      onError: (error) => { toast.error("Error saving note", { description: error.message }); },
   });
 
-  const deleteNoteMutation = useMutation({ /* ... definition ... */
+  const deleteNoteMutation = useMutation({
     mutationFn: deleteNote,
     onSuccess: (data, noteIdToDelete) => {
       toast.success("Note deleted!");
@@ -190,13 +181,13 @@ function AppNotesPage() {
     onError: (error) => { toast.error("Error deleting note", { description: error.message }); },
   });
 
-  const summarizeMutation = useMutation({ /* ... definition ... */
+  const summarizeMutation = useMutation({
      mutationFn: (noteId: string) => summarizeNoteAction(noteId),
-     onMutate: () => { toast.info("Generating summary..."); setSummary(null); setShowSummaryDialog(true); }, // Show dialog immediately
+     onMutate: () => { toast.info("Generating summary..."); setSummary(null); setShowSummaryDialog(true); },
      onSuccess: (result) => {
        if (result.errorMessage) {
          toast.error("Summarization failed", { description: result.errorMessage });
-         setSummary("Error: " + result.errorMessage); // Show error in dialog
+         setSummary("Error: " + result.errorMessage);
        } else if (result.summary) {
          setSummary(result.summary);
          toast.success("Summary generated!");
@@ -211,7 +202,7 @@ function AppNotesPage() {
      },
   });
 
-  const logoutMutation = useMutation({ /* ... definition ... */
+  const logoutMutation = useMutation({
     mutationFn: logOutAction,
     onSuccess: () => {
       toast.success("Logged out successfully!");
@@ -221,7 +212,6 @@ function AppNotesPage() {
     onError: (error) => { toast.error("Logout failed", { description: error.message }); },
   });
 
-  // == Event Handlers (Callbacks for Child Components) ==
   const handleSaveNote = useCallback(() => {
     if (!selectedNoteId || !contentChangedRef.current || updateNoteMutation.isPending) return;
     const originalNote = notes.find(n => n.id === selectedNoteId);
@@ -281,22 +271,20 @@ function AppNotesPage() {
     logoutMutation.mutate();
   };
 
-  // == Render Logic ==
   const anyMutationPending = createNoteMutation.isPending || updateNoteMutation.isPending || deleteNoteMutation.isPending || summarizeMutation.isPending || logoutMutation.isPending;
-  const editorLoadingState = isLoadingNotes && !selectedNote; // Loading state specific to editor view
+  const editorLoadingState = isLoadingNotes && !selectedNote;
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
-      {/* Pass necessary state and handlers to Sidebar */}
       <NoteSidebar
         notes={notes}
         selectedNoteId={selectedNoteId}
-        isLoadingNotes={isLoadingNotes || isFetchingNotes} // Pass combined loading
+        isLoadingNotes={isLoadingNotes || isFetchingNotes}
         isErrorNotes={isErrorNotes}
         errorNotes={errorNotes as Error | null}
         isCreatingNote={createNoteMutation.isPending}
         isDeletingNote={deleteNoteMutation.isPending}
-        deletingNoteId={deleteNoteMutation.variables ?? null} // Pass the ID being deleted
+        deletingNoteId={deleteNoteMutation.variables ?? null}
         isLoggingOut={logoutMutation.isPending}
         anyMutationPending={anyMutationPending}
         isNavigating={isNavigatingRef.current}
@@ -306,7 +294,6 @@ function AppNotesPage() {
         onLogout={handleLogout}
       />
 
-      {/* Pass necessary state and handlers to Editor */}
       <NoteEditor
         note={selectedNote}
         isLoadingNote={editorLoadingState}
@@ -321,10 +308,9 @@ function AppNotesPage() {
         onSave={handleSaveNote}
         onSummarize={handleSummarizeNote}
         onBlur={handleBlur}
-        errorMessage={isErrorNotes ? (errorNotes as Error)?.message : null} // Pass error relevant to editor display
+        errorMessage={isErrorNotes ? (errorNotes as Error)?.message : null}
       />
 
-      {/* Pass necessary state and handlers to Dialog */}
       <SummaryDialog
         isOpen={showSummaryDialog}
         onOpenChange={setShowSummaryDialog}
