@@ -11,12 +11,23 @@ import {
     Trash2,
     Save,
     Loader2,
-    LogOut
+    LogOut,
+    BrainCircuit,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { logOutAction } from "@/actions/users";
+import { summarizeNoteAction } from "@/actions/notes"; 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose, 
+} from "@/components/ui/dialog"; 
 
 export const dynamic = 'force-dynamic';
 
@@ -62,6 +73,9 @@ function AppNotesPage() {
     const contentChangedRef = useRef(false);
 
     const [isLoggingOut, startLogoutTransition] = useTransition();
+    const [isSummarizing, startSummarizeTransition] = useTransition();
+    const [summary, setSummary] = useState<string | null>(null);
+    const [showSummaryDialog, setShowSummaryDialog] = useState(false);
 
     const selectedNote = notes.find((note) => note.id === selectedNoteId);
 
@@ -117,14 +131,11 @@ function AppNotesPage() {
           if (!targetNoteId) {
               if (mappedNotes.length > 0) {
                   targetNoteId = mappedNotes[0].id;
-                  console.log(`No noteId in URL, selecting newest: ${targetNoteId}`);
               } else {
-                  console.log("No notes found, attempting to create one...");
                   const newNote = await createNewNote();
                   if (newNote) {
                       targetNoteId = newNote.id;
                       setNotes([newNote]);
-                      console.log(`Created and selected new note: ${targetNoteId}`);
                   } else {
                        setError("Could not create an initial note.");
                        setIsLoading(false);
@@ -132,15 +143,12 @@ function AppNotesPage() {
                        return;
                   }
               }
-
               if (targetNoteId) {
-                  console.log(`Redirecting to /dashboard?noteId=${targetNoteId}`);
                   router.replace(`/dashboard?noteId=${targetNoteId}`, { scroll: false });
                   setSelectedNoteId(targetNoteId);
               }
           } else {
                if (!mappedNotes.find(n => n.id === targetNoteId)) {
-                   console.warn(`NoteId ${targetNoteId} from URL not found. Selecting newest or creating.`);
                    targetNoteId = mappedNotes.length > 0 ? mappedNotes[0].id : null;
                    if (targetNoteId) {
                       router.replace(`/dashboard?noteId=${targetNoteId}`, { scroll: false });
@@ -157,7 +165,6 @@ function AppNotesPage() {
                        }
                    }
                } else {
-                    console.log(`NoteId ${targetNoteId} from URL is valid.`);
                     setSelectedNoteId(targetNoteId);
                }
           }
@@ -173,8 +180,7 @@ function AppNotesPage() {
         }
       }, [router, selectedNoteId, createNewNote]);
 
-
-    useEffect(() => {
+      useEffect(() => {
         initializeNotes();
       }, [initializeNotes]);
 
@@ -233,7 +239,6 @@ function AppNotesPage() {
         setSelectedNoteId(noteId);
     }, [selectedNoteId, currentContent, currentTitle, handleSaveNote, router]);
 
-
      const handleContentChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         setCurrentContent(event.target.value);
         contentChangedRef.current = true;
@@ -243,16 +248,13 @@ function AppNotesPage() {
         contentChangedRef.current = true;
       };
 
-
       const handleAddNewNote = useCallback(async () => {
         if (selectedNoteId && contentChangedRef.current) {
             await handleSaveNote(selectedNoteId, currentContent, currentTitle);
         }
-
         setIsSaving(true);
         const newNote = await createNewNote();
         setIsSaving(false);
-
         if (newNote) {
             setNotes(prev => [newNote, ...prev].sort((a, b) => b.lastModified - a.lastModified));
             router.push(`/dashboard?noteId=${newNote.id}`, { scroll: false });
@@ -263,14 +265,11 @@ function AppNotesPage() {
 
      const handleDeleteNote = useCallback(async (noteIdToDelete: string) => {
         if (!noteIdToDelete || isSaving) return;
-
         const originalNotes = [...notes];
         const originalSelectedId = selectedNoteId;
         const noteToDeleteIndex = notes.findIndex(n => n.id === noteIdToDelete);
         if (noteToDeleteIndex === -1) return;
-
         setNotes(prev => prev.filter(n => n.id !== noteIdToDelete));
-
         let nextSelectedId: string | null = null;
         if (selectedNoteId === noteIdToDelete) {
             if (notes.length > 1) {
@@ -287,7 +286,6 @@ function AppNotesPage() {
                 setCurrentTitle("");
             }
         }
-
         setError(null);
         try {
             const response = await fetch(`/api/notes/${noteIdToDelete}`, { method: 'DELETE' });
@@ -319,16 +317,37 @@ function AppNotesPage() {
         });
     };
 
+    const handleSummarizeNote = useCallback(() => {
+        if (!selectedNoteId || isSummarizing) return;
+
+        startSummarizeTransition(async () => {
+            setSummary(null);
+            setShowSummaryDialog(false);
+
+            toast.info("Generating summary...");
+            const result = await summarizeNoteAction(selectedNoteId);
+
+            if (result.errorMessage) {
+                toast.error("Summarization failed", { description: result.errorMessage });
+            } else if (result.summary) {
+                setSummary(result.summary);
+                setShowSummaryDialog(true);
+                toast.success("Summary generated!");
+            } else {
+                 toast.error("Summarization failed", { description: "An unknown error occurred." });
+            }
+        });
+    }, [selectedNoteId, isSummarizing]);
+
     return (
         <div className="flex h-screen bg-background text-foreground overflow-hidden">
             <aside className="w-64 md:w-72 border-r border-border flex flex-col bg-muted/30 dark:bg-muted/10">
                 <div className="p-4 border-b border-border flex justify-between items-center">
                     <h2 className="text-lg font-semibold">My Notes</h2>
-                    <Button variant="ghost" size="icon" onClick={handleAddNewNote} title="Add New Note" disabled={isSaving || isInitializing || isLoggingOut}>
-                        {isSaving && !isInitializing ? <Loader2 className="h-5 w-5 animate-spin" /> : <PlusCircle className="h-5 w-5" />}
+                    <Button variant="ghost" size="icon" onClick={handleAddNewNote} title="Add New Note" disabled={isSaving || isInitializing || isLoggingOut || isSummarizing}>
+                        {(isSaving && !isInitializing) ? <Loader2 className="h-5 w-5 animate-spin" /> : <PlusCircle className="h-5 w-5" />}
                     </Button>
                 </div>
-
                 <nav className="flex-1 overflow-y-auto p-2 space-y-1">
                    {isLoading ? (
                         <div className="space-y-2 p-2">
@@ -343,7 +362,7 @@ function AppNotesPage() {
                         <div key={note.id} className="group relative flex items-center">
                             <button
                                 onClick={() => handleNoteSelect(note.id)}
-                                disabled={isInitializing || isLoggingOut}
+                                disabled={isInitializing || isLoggingOut || isSummarizing}
                                 className={cn(
                                     "flex-1 flex items-center gap-3 text-left px-3 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed",
                                     selectedNoteId === note.id
@@ -359,7 +378,7 @@ function AppNotesPage() {
                                 size="icon"
                                 className="absolute right-1 h-7 w-7 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-muted-foreground hover:text-destructive disabled:opacity-0"
                                 onClick={(e) => { e.stopPropagation(); handleDeleteNote(note.id); }}
-                                disabled={isSaving || isInitializing || isLoggingOut}
+                                disabled={isSaving || isInitializing || isLoggingOut || isSummarizing}
                                 title={`Delete "${note.title}"`}
                                 >
                                 <Trash2 className="h-4 w-4" />
@@ -370,7 +389,6 @@ function AppNotesPage() {
                         <p className="text-sm text-muted-foreground text-center p-4">No notes yet. Create one!</p>
                     )}
                 </nav>
-
                 <div className="p-4 border-t border-border text-xs text-muted-foreground space-y-2">
                     <div>{isLoading ? "Loading..." : `${notes.length} notes`}</div>
                     <Button
@@ -378,7 +396,7 @@ function AppNotesPage() {
                         size="sm"
                         className="w-full justify-start"
                         onClick={handleLogout}
-                        disabled={isLoggingOut}
+                        disabled={isLoggingOut || isSummarizing}
                     >
                         {isLoggingOut ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -407,12 +425,22 @@ function AppNotesPage() {
                             placeholder="Note title"
                             className="text-xl font-semibold truncate flex-1 bg-transparent border-none focus:outline-none focus:ring-0 min-w-[100px]"
                             aria-label="Note title"
-                            disabled={isSaving || isLoggingOut}
+                            disabled={isSaving || isLoggingOut || isSummarizing}
                         />
                         <div className="flex items-center gap-2 flex-shrink-0">
-                            {isSaving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                            {isSaving && <Loader2 className="h-4 w-4 animate-spin mr-1" aria-label="Saving..." />}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleSummarizeNote}
+                                disabled={!selectedNoteId || isSummarizing || isSaving || isLoggingOut || !currentContent?.trim()} // Disable conditions
+                                title={!currentContent?.trim() ? "Cannot summarize empty note" : "Summarize Note with AI"}
+                            >
+                                {isSummarizing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <BrainCircuit className="h-4 w-4 mr-1" />}
+                                Summarize
+                            </Button>
                             {contentChangedRef.current && !isSaving && (
-                                <Button variant="ghost" size="sm" onClick={() => handleSaveNote(selectedNoteId, currentContent, currentTitle)} title="Save changes" disabled={isLoggingOut}>
+                                <Button variant="ghost" size="sm" onClick={() => handleSaveNote(selectedNoteId, currentContent, currentTitle)} title="Save changes" disabled={isLoggingOut || isSummarizing}>
                                     <Save className="h-4 w-4 mr-1" /> Save
                                 </Button>
                             )}
@@ -429,7 +457,7 @@ function AppNotesPage() {
                             onChange={handleContentChange}
                             onBlur={() => handleSaveNote(selectedNoteId, currentContent, currentTitle)}
                             aria-label="Note content"
-                            disabled={isSaving || isLoggingOut}
+                            disabled={isSaving || isLoggingOut || isSummarizing}
                         />
                         </div>
                         <div className="p-3 border-t border-border text-sm text-muted-foreground text-right">
@@ -444,6 +472,27 @@ function AppNotesPage() {
                     </div>
                     )}
             </main>
+
+             <Dialog open={showSummaryDialog} onOpenChange={setShowSummaryDialog}>
+                <DialogContent className="sm:max-w-[525px]">
+                    <DialogHeader>
+                    <DialogTitle>AI Summary</DialogTitle>
+                    <DialogDescription>
+                        Here's a summary of your note "{selectedNote?.title || 'current note'}":
+                    </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 max-h-[60vh] overflow-y-auto">
+                        <p className="text-sm whitespace-pre-wrap">{summary || "No summary generated."}</p>
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button type="button" variant="secondary">
+                                Close
+                            </Button>
+                        </DialogClose>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

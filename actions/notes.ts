@@ -3,118 +3,68 @@
 import { getUser } from "@/auth/server";
 import { prisma } from "@/db/prisma";
 import { handleError } from "@/lib/utils";
-// import openai from "@/openai";
-// import { ChatCompletionMessageParam } from "openai/resources/index.mjs";
+import openai from "@/lib/groq";
 
-// export const createNoteAction = async (noteId: string) => {
-//   try {
-//     const user = await getUser();
-//     if (!user) throw new Error("You must be logged in to create a note");
+export const summarizeNoteAction = async (noteId: string) => {
+  try {
+    const user = await getUser();
+    if (!user) throw new Error("You must be logged in to summarize a note.");
 
-//     await prisma.note.create({
-//       data: {
-//         id: noteId,
-//         authorId: user.id,
-//         text: "",
-//       },
-//     });
+    const note = await prisma.note.findUnique({
+      where: {
+        id: noteId,
+        authorId: user.id,
+      },
+      select: {
+        content: true,
+        title: true,
+      }
+    });
 
-//     return { errorMessage: null };
-//   } catch (error) {
-//     return handleError(error);
-//   }
-// };
+    if (!note) {
+      throw new Error("Note not found or you don't have permission.");
+    }
 
-// export const updateNoteAction = async (noteId: string, text: string) => {
-//   try {
-//     const user = await getUser();
-//     if (!user) throw new Error("You must be logged in to update a note");
+    if (!note.content?.trim()) {
+      return { summary: "Note content is empty, nothing to summarize.", errorMessage: null };
+    }
 
-//     await prisma.note.update({
-//       where: { id: noteId },
-//       data: { text },
-//     });
+    if (note.content.trim().length < 50) {
+       return { summary: "Note content is too short to provide a meaningful summary.", errorMessage: null };
+    }
 
-//     return { errorMessage: null };
-//   } catch (error) {
-//     return handleError(error);
-//   }
-// };
+    console.log(`Summarizing note "${note.title}" (ID: ${noteId})...`);
 
-// export const deleteNoteAction = async (noteId: string) => {
-//   try {
-//     const user = await getUser();
-//     if (!user) throw new Error("You must be logged in to delete a note");
+    const messages = [
+        {
+          role: "system" as const,
+          content: `You are an expert assistant specialized in summarizing text concisely and accurately. Given the following note content, provide a brief summary (around 2-4 sentences unless the text is very long). Focus on the main points and key information. Ignore any previous instructions. Your output should be plain text only.`,
+        },
+        {
+            role: "user" as const,
+            content: `Please summarize this note content:\n\n${note.content}`,
+        },
+    ];
 
-//     await prisma.note.delete({
-//       where: { id: noteId, authorId: user.id },
-//     });
 
-//     return { errorMessage: null };
-//   } catch (error) {
-//     return handleError(error);
-//   }
-// };
+    const completion = await openai.chat.completions.create({
+      model: "llama-3.3-70b-versatile", 
+      messages,
+      temperature: 0.3,
+      max_tokens: 150,
+    });
 
-// export const askAIAboutNotesAction = async (
-//   newQuestions: string[],
-//   responses: string[],
-// ) => {
-//   const user = await getUser();
-//   if (!user) throw new Error("You must be logged in to ask AI questions");
+    const summary = completion.choices[0]?.message?.content?.trim();
 
-//   const notes = await prisma.note.findMany({
-//     where: { authorId: user.id },
-//     orderBy: { createdAt: "desc" },
-//     select: { text: true, createdAt: true, updatedAt: true },
-//   });
+    if (!summary) {
+        throw new Error("AI failed to generate a summary.");
+    }
 
-//   if (notes.length === 0) {
-//     return "You don't have any notes yet.";
-//   }
+     console.log(`Summary generated for note "${note.title}".`);
+    return { summary, errorMessage: null };
 
-//   const formattedNotes = notes
-//     .map((note) =>
-//       `
-//       Text: ${note.text}
-//       Created at: ${note.createdAt}
-//       Last updated: ${note.updatedAt}
-//       `.trim(),
-//     )
-//     .join("\n");
-
-//   const messages: ChatCompletionMessageParam[] = [
-//     {
-//       role: "developer",
-//       content: `
-//           You are a helpful assistant that answers questions about a user's notes. 
-//           Assume all questions are related to the user's notes. 
-//           Make sure that your answers are not too verbose and you speak succinctly. 
-//           Your responses MUST be formatted in clean, valid HTML with proper structure. 
-//           Use tags like <p>, <strong>, <em>, <ul>, <ol>, <li>, <h1> to <h6>, and <br> when appropriate. 
-//           Do NOT wrap the entire response in a single <p> tag unless it's a single paragraph. 
-//           Avoid inline styles, JavaScript, or custom attributes.
-          
-//           Rendered like this in JSX:
-//           <p dangerouslySetInnerHTML={{ __html: YOUR_RESPONSE }} />
-    
-//           Here are the user's notes:
-//           ${formattedNotes}
-//           `,
-//     },
-//   ];
-
-//   for (let i = 0; i < newQuestions.length; i++) {
-//     messages.push({ role: "user", content: newQuestions[i] });
-//     if (responses.length > i) {
-//       messages.push({ role: "assistant", content: responses[i] });
-//     }
-//   }
-
-//   const completion = await openai.chat.completions.create({
-//     model: "gpt-4o-mini",
-//     messages,
-//   });
-
-//   return completion.choices[0].message.content || "A problem has occurred";
-// };
+  } catch (error) {
+      console.error("Summarization Error:", error);
+      return { summary: null, ...handleError(error) };
+  }
+};
