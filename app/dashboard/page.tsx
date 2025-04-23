@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef, useTransition }
+import React, { useState, useEffect, useCallback, useRef, useTransition, Suspense }
 from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { logOutAction } from "@/actions/users";
 
+export const dynamic = 'force-dynamic';
+
+function DashboardFallback() {
+  return (
+    <div className="flex h-screen w-full items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<DashboardFallback />}>
+      <AppNotesPage />
+    </Suspense>
+  );
+}
+
 type Note = {
     id: string;
     title: string;
@@ -28,7 +46,7 @@ type Note = {
     authorId?: string;
 };
 
-export default function AppNotesPage() {
+function AppNotesPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const initialNoteId = searchParams.get("noteId");

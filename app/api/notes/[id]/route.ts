@@ -2,9 +2,15 @@ import { NextResponse } from 'next/server';
 import { getUser } from '@/auth/server';
 import { prisma } from '@/db/prisma';
 
+interface RouteContext {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: RouteContext
 ) {
   try {
     const user = await getUser();
@@ -47,7 +53,7 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: RouteContext
 ) {
   try {
     const user = await getUser();
@@ -55,8 +61,8 @@ export async function DELETE(
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const noteId = params.id;
+    const { id } = await params;
+    const noteId = id;
 
 
     const deleteResult = await prisma.note.deleteMany({

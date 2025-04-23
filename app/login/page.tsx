@@ -1,5 +1,19 @@
+"use client"
 import AuthForm from "@/components/AuthForm";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Suspense } from 'react';
+import { Loader2 } from 'lucide-react';
+
+export const dynamic = 'force-dynamic';
+
+
+function AuthFormFallback() {
+  return (
+    <CardContent className="flex items-center justify-center p-8">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </CardContent>
+  );
+}
 
 function LoginPage() {
   return (
@@ -8,8 +22,9 @@ function LoginPage() {
         <CardHeader className="mb-4">
           <CardTitle className="text-center text-3xl">Login</CardTitle>
         </CardHeader>
-
-        <AuthForm type="login" />
+        <Suspense fallback={<AuthFormFallback />}>
+          <AuthForm type="login" />
+        </Suspense>
       </Card>
     </div>
   );
