@@ -3,6 +3,8 @@
 import { createClient } from "@/auth/server";
 import { prisma } from "@/db/prisma";
 import { handleError } from "@/lib/utils";
+import { Provider } from "@supabase/supabase-js";
+import { redirect } from "next/navigation";
 
 export const loginAction = async (email: string, password: string) => {
   try {
@@ -58,3 +60,20 @@ export const signUpAction = async (email: string, password: string) => {
     return handleError(error);
   }
 };
+
+const signInWith = (provider: Provider) => async () => {
+    const { auth } = await createClient();
+
+    const {data, error} = await auth.signInWithOAuth({
+      provider: provider,
+      options: {
+        redirectTo: `${process.env.SITE_URL}/api/auth/callback`,
+      },
+    });
+    if (error){
+      console.log(error)
+    }
+    redirect(data.url!)
+};
+const signInWithGoogle = signInWith('google')
+export { signInWithGoogle }
