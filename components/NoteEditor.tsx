@@ -1,4 +1,3 @@
-// components/dashboard/NoteEditor.tsx
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -6,20 +5,20 @@ import { Loader2, BrainCircuit, Save } from 'lucide-react';
 import type { NoteData } from '@/lib/notes';
 
 interface NoteEditorProps {
-  note: (NoteData & { lastModified: number }) | null; // Selected note or null
-  isLoadingNote: boolean; // Combined loading state for the editor view
+  note: (NoteData & { lastModified: number }) | null;
+  isLoadingNote: boolean;
   isSaving: boolean;
   isSummarizing: boolean;
-  anyMutationPending: boolean; // General flag
-  title: string; // Current editor title
-  content: string; // Current editor content
+  anyMutationPending: boolean;
+  title: string;
+  content: string;
   hasChanges: boolean;
   onTitleChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onContentChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onSave: () => void;
   onSummarize: () => void;
   onBlur: () => void;
-  errorMessage?: string | null; // Optional error message for editor area
+  errorMessage?: string | null;
 }
 
 export function NoteEditor({
@@ -40,7 +39,7 @@ export function NoteEditor({
 }: NoteEditorProps) {
   return (
     <main className="flex-1 flex flex-col overflow-hidden">
-      {isLoadingNote && !note ? ( // Show loader only if loading and no note data yet
+      {isLoadingNote && !note ? (
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin mr-2" />
           <p className="text-muted-foreground">Loading note...</p>
@@ -100,7 +99,7 @@ export function NoteEditor({
           <p className="text-muted-foreground">
             {errorMessage
               ? `Error: ${errorMessage}`
-              : isLoadingNote // If still loading after checks
+              : isLoadingNote
               ? "Loading notes..."
               : "Select a note or create a new one."}
           </p>
