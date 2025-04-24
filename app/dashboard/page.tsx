@@ -13,7 +13,7 @@ import { NoteSidebar } from "@/components/NoteSidebar";
 import { NoteEditor } from "@/components/NoteEditor";
 import { SummaryDialog } from "@/components/SummaryDialog";
 import { Loader2 } from "lucide-react";
-
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const dynamic = 'force-dynamic';
 
@@ -38,6 +38,8 @@ function AppNotesPage() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
+  const isMobile = useIsMobile();
+
   const noteIdFromUrl = searchParams.get("noteId");
 
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(noteIdFromUrl);
@@ -47,6 +49,8 @@ function AppNotesPage() {
   const [summary, setSummary] = useState<string | null>(null);
   const [showSummaryDialog, setShowSummaryDialog] = useState(false);
   const isNavigatingRef = useRef(false);
+
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const {
     data: notesData,
@@ -274,6 +278,10 @@ function AppNotesPage() {
   const anyMutationPending = createNoteMutation.isPending || updateNoteMutation.isPending || deleteNoteMutation.isPending || summarizeMutation.isPending || logoutMutation.isPending;
   const editorLoadingState = isLoadingNotes && !selectedNote;
 
+  const toggleMobileSidebar = () => {
+    setIsMobileSidebarOpen(!isMobileSidebarOpen);
+  };
+
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
       <NoteSidebar
@@ -292,6 +300,9 @@ function AppNotesPage() {
         onDeleteNote={handleDeleteNote}
         onCreateNote={handleAddNewNote}
         onLogout={handleLogout}
+        isMobile={isMobile}
+        isMobileSidebarOpen={isMobileSidebarOpen}
+        onCloseMobileSidebar={() => setIsMobileSidebarOpen(false)}
       />
 
       <NoteEditor
@@ -309,6 +320,10 @@ function AppNotesPage() {
         onSummarize={handleSummarizeNote}
         onBlur={handleBlur}
         errorMessage={isErrorNotes ? (errorNotes as Error)?.message : null}
+        isMobile={isMobile}
+        onToggleMobileSidebar={toggleMobileSidebar}
+        onCreateNote={handleAddNewNote}
+        isCreatingNote={createNoteMutation.isPending}
       />
 
       <SummaryDialog
