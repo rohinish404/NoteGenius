@@ -9,12 +9,12 @@ const features = [
   },
   {
     icon: <Highlighter size={24} className="text-purple-500" />,
-    title: "Smart Highlighting",
+    title: "Smart Highlighting (Coming Soon)",
     description: "Our AI automatically identifies and highlights important concepts, facts, and insights across your documents. Never miss critical information again."
   },
   {
     icon: <Zap size={24} className="text-purple-500" />,
-    title: "Contextual Explanations",
+    title: "Contextual Explanations (Coming Soon)",
     description: "Get instant explanations of complex concepts within your notes. Simply select any text to receive clear, concise explanations."
   }
 ];

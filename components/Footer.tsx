@@ -17,8 +17,8 @@ export default function Footer() {
                 <h4 className="font-semibold mb-3 text-white">Features</h4> 
                 <ul className="space-y-2">
                   <li>AI Summarization</li>
-                  <li>Smart Highlighting</li>
-                  <li>Contextual Explanations</li>
+                  <li>Smart Highlighting (Coming Soon)</li>
+                  <li>Contextual Explanations (Coming Soon)</li>
                 </ul>
               </div>
               

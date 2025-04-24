@@ -15,8 +15,8 @@ export default function HowItWorksSection() {
           <div className="grid md:grid-cols-3 gap-8 md:gap-12">
             <div className="text-center">
               <div className="w-16 h-16 rounded-full bg-purple-100 text-purple-500 flex items-center justify-center text-2xl font-bold mx-auto mb-6">1</div>
-              <h3 className="text-xl font-bold mb-3">Paste Your Content</h3>
-              <p className="text-gray-600">Simply paste any text, article, or notes you need to work with.</p>
+              <h3 className="text-xl font-bold mb-3">Paste/Type Your Content</h3>
+              <p className="text-gray-600">Simply paste or write any text, article, or notes you need to work with.</p>
             </div>
             
             <div className="text-center">
